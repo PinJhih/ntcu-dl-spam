@@ -1,23 +1,30 @@
 import torch
-from torch.utils.data import DataLoader
+from torch import nn, optim
+
+import ddp_trainer
+from ddp_trainer import Trainer
+from ddp_trainer.utils import evaluate
 
 import dataset
 import models
 
 if __name__ == "__main__":
-    device = "cuda"
+    ddp_trainer.init()
+
+    # setup hyperparameters
+    batch_size = 64
+    max_length = 128
+    learning_rate = 1e-5
+    epochs = 10
+
+    # load model and tokenizer
+    model, tokenizer = models.load_model()
 
     # load datasets
     data_path = "./data/email_classification.csv"
     train_set, val_set = dataset.load_data(data_path)
-    print("Training   samples:", len(train_set))
-    print("Validation samples:", len(val_set))
 
-    # load model
-    model, tokenizer = models.load_model()
-    model = model.to(device)
-
-    MAX_LENGTH = 128
+    # create dataloader
     def collate_fn(batch):
         texts = [item[0] for item in batch]
         labels = torch.stack([item[1] for item in batch])
@@ -25,16 +32,27 @@ if __name__ == "__main__":
             texts,
             padding=True,
             truncation=True,
-            max_length=MAX_LENGTH,
+            max_length=max_length,
             return_tensors="pt",
         )
         return encoded_inputs, labels
 
-    # create dataloader
-    val_loader = DataLoader(val_set, 4, shuffle=True, collate_fn=collate_fn)
-    with torch.no_grad():
-        model.eval()
-        for x, y in val_loader:
-            x, y = x.to(device), y.to(device)
-            outputs = model(x)
-        print(outputs.shape)
+    train_loader = ddp_trainer.to_ddp_loader(
+        train_set, batch_size=batch_size, num_workers=4, collate_fn=collate_fn
+    )
+    val_loader = ddp_trainer.to_ddp_loader(
+        val_set, batch_size=batch_size, num_workers=4, collate_fn=collate_fn
+    )
+
+    # config loss funciton and optimizer
+    loss_fn = nn.CrossEntropyLoss()
+    optimizer = optim.AdamW(model.parameters(), lr=learning_rate)
+    trainer = Trainer(
+        model,
+        loss_fn,
+        optimizer,
+        eval_fn=evaluate.multi_class_accuracy,
+    )
+
+    # train the model
+    trainer.train(epochs, train_loader, val_loader)
