@@ -1,5 +1,9 @@
 # NTCU-DL 期末報告 - Spam Detection
 
+## Dataset
+- [Email Classification (Ham-Spam)](https://www.kaggle.com/datasets/prishasawhney/email-classification-ham-spam)
+- [enron_spam_data](https://github.com/MWiechmann/enron_spam_data)
+
 ## Setup
 
 Install Pytorch: https://pytorch.org/get-started/locally/
