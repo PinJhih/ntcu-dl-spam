@@ -22,19 +22,42 @@ if __name__ == "__main__":
 
     # load datasets
     data_path = "./data/email_classification.csv"
-    train_set, val_set = dataset.load_data(data_path)
+    enron_path = "./data/enron_spam_data.csv"
 
-    # create dataloader
+    feature_cols = ["Message", "Subject"]
+    train_set, val_set = dataset.load_enron_data(enron_path, feature_cols=feature_cols)
+
+    # Modified collate for flexible features of enron spam dataset
     def collate_fn(batch):
-        texts = [item[0] for item in batch]
+        messages = [item[0][0] for item in batch]
+        subjects = [item[0][1] for item in batch]
         labels = torch.stack([item[1] for item in batch])
-        encoded_inputs = tokenizer(
-            texts,
+        
+        # Encode both message and subject
+        message_inputs = tokenizer(
+            messages,
             padding=True,
             truncation=True,
             max_length=max_length,
-            return_tensors="pt",
+            return_tensors="pt"
         )
+        
+        subject_inputs = tokenizer(
+            subjects,
+            padding=True,
+            truncation=True,
+            max_length=max_length // 4,
+            return_tensors="pt"
+        )
+        
+        # Combine the inputs
+        encoded_inputs = {
+            'message_input_ids': message_inputs.input_ids,
+            'message_attention_mask': message_inputs.attention_mask,
+            'subject_input_ids': subject_inputs.input_ids,
+            'subject_attention_mask': subject_inputs.attention_mask
+        }
+        
         return encoded_inputs, labels
 
     train_loader = ddp_trainer.to_ddp_loader(
