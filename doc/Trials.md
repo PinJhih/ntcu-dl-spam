@@ -26,3 +26,9 @@
 
 # Experiment
 - CV Methods: K-fold for balanced dataset, Stratified K-Fold for unbalanced dataset
+
+# BERT
+## Hyperparameters
+- `max_length` depends on the text length. For text classification:
+	- Short text: 128-256
+	- Long documents: 512-1024
