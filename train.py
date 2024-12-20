@@ -12,7 +12,7 @@ if __name__ == "__main__":
     ddp_trainer.init()
 
     # setup hyperparameters
-    batch_size = 64
+    batch_size = 16
     max_length = 128
     learning_rate = 1e-5
     epochs = 10
@@ -21,7 +21,7 @@ if __name__ == "__main__":
     model, tokenizer = models.load_model()
 
     # load datasets
-    data_path = "./data/email_classification.csv"
+    data_path = "./data/processed_data.csv"
     train_set, val_set = dataset.load_data(data_path)
 
     # create dataloader
