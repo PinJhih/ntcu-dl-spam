@@ -13,6 +13,9 @@ class BertClassifier(nn.Module):
         output = self.encoder(**inputs).logits
         return output
 
+    def state_dict(self):
+        return self.encoder.state_dict()
+
 
 def load_model(model_name="google-bert/bert-large-uncased"):
     # load pretrained bert model
