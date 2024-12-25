@@ -43,7 +43,9 @@ def preprocess():
 
     subject = raw_data["Subject"]
     message = raw_data["Message"]
-    email = subject + " " + message
+    email = [
+        f'SUBJECT: "{subject[i]}"\nMESSAGE: "{message[i]}"' for i in range(len(subject))
+    ]
 
     processed_data = pd.DataFrame(
         {

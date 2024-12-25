@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import torch
 from torch import nn, optim
 
@@ -7,6 +8,26 @@ from ddp_trainer.utils import evaluate
 
 import dataset
 import models
+
+
+def plot_learning_curve(train_loss, val_loss, val_acc, output_path="curve.png"):
+    fig, ax1 = plt.subplots(figsize=(8, 5))
+
+    ax1.set_xlabel("Epoch")
+    ax1.set_ylabel("Cross Entropy Loss")
+    ax1.plot(train_loss, label="Train Loss")
+    ax1.plot(val_loss, label="Validation Loss")
+    ax1.tick_params(axis="y")
+
+    ax2 = ax1.twinx()
+    ax2.set_ylabel("Accuracy")
+    ax2.plot(val_acc, label="Validation Accuracy", color="green")
+    ax2.tick_params(axis="y")
+    fig.legend(loc="upper left")
+    plt.title("Learning Curve")
+    fig.tight_layout()
+    plt.savefig(output_path)
+
 
 if __name__ == "__main__":
     ddp_trainer.init()
@@ -47,12 +68,24 @@ if __name__ == "__main__":
     # config loss funciton and optimizer
     loss_fn = nn.CrossEntropyLoss()
     optimizer = optim.AdamW(model.parameters(), lr=learning_rate)
+    scheduler = optim.lr_scheduler.StepLR(optimizer, 2, 0.1)
     trainer = Trainer(
         model,
         loss_fn,
         optimizer,
         eval_fn=evaluate.multi_class_accuracy,
+        scheduler=scheduler,
     )
 
     # train the model
     trainer.train(epochs, train_loader, val_loader)
+
+    # save the model
+    if ddp_trainer.rank == 0:
+        torch.save(model.state_dict(), "output/bert_spam.pt")
+
+        history = trainer.history
+        train_loss = history.get_train_losses()
+        val_loss = history.get_val_losses()
+        acc = history.get_evaluations()
+        plot_learning_curve(train_loss, val_loss, acc, "output/learning_curve.png")
