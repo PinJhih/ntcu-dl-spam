@@ -37,31 +37,40 @@ with gr.Blocks() as demo:
     gr.Markdown("請輸入主旨 (subject) 和內文 (message)，以獲得模型輸出的機率")
 
     with gr.Row():
-        subject_input = gr.Textbox(
-            label="Subject", placeholder="Enter the subject here..."
-        )
-        message_input = gr.Textbox(
-            label="Message", placeholder="Enter the message here..."
-        )
+        with gr.Column():
+            subject_input = gr.Textbox(
+                label="Subject", placeholder="Enter the subject here..."
+            )
+            message_input = gr.Textbox(
+                label="Message",
+                placeholder="Enter the message here...",
+                max_lines=10,
+            )
+            submit_button = gr.Button("Submit")
 
-    with gr.Row():
-        bar_chart = gr.Plot(label="Probability Visualization")
-
-    submit_button = gr.Button("Submit")
+        with gr.Row():
+            bar_chart = gr.Plot(label="Probability Visualization")
 
     def visualize_prob(subject, message):
         logits = inference(subject, message)
         import plotly.graph_objects as go
 
-        # 創建水平條形圖
-        fig = go.Figure(data=[
-            go.Bar(name='Probability', y=["Spam", "Ham"], x=logits, orientation='h', marker_color=['blue', 'orange'])
-        ])
+        fig = go.Figure(
+            data=[
+                go.Bar(
+                    name="Probability",
+                    y=["Ham", "Spam"],
+                    x=logits,
+                    orientation="h",
+                    marker_color=["blue", "orange"],
+                )
+            ]
+        )
         fig.update_layout(
             title="Probability Visualization",
             xaxis_title="Probability",
             yaxis_title="Class",
-            xaxis=dict(range=[0, 1])
+            xaxis=dict(range=[0, 1]),
         )
 
         return fig
